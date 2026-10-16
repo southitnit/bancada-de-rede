@@ -1,0 +1,21 @@
+# Quadlet do Podman (systemd). Depois de "podman build -t localhost/bancada-de-rede:latest .",
+# copie para ~/.config/containers/systemd/ (rootless) ou /etc/containers/systemd/ (root),
+# rode "systemctl --user daemon-reload" e depois "systemctl --user start bancada-de-rede".
+[Unit]
+Description=Bancada de Rede
+After=network-online.target
+
+[Container]
+Image=localhost/bancada-de-rede:latest
+ContainerName=bancada-de-rede
+PublishPort=8080:8080
+Volume=bancada-data:/data
+# Environment=BASIC_AUTH=admin:troque-esta-senha
+HealthCmd=/bancada --healthcheck
+HealthInterval=30s
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,19 @@
+# Funciona com "docker compose up -d" e "podman compose up -d" (ou podman-compose).
+services:
+  bancada:
+    build: .
+    image: localhost/bancada-de-rede:latest
+    container_name: bancada-de-rede
+    ports:
+      - "8080:8080"
+    environment:
+      DATA_DIR: /data
+      # Descomente para exigir usuário e senha (HTTP Basic):
+      # BASIC_AUTH: "admin:troque-esta-senha"
+    volumes:
+      - bancada-data:/data
+    restart: unless-stopped
+    init: true
+
+volumes:
+  bancada-data:
