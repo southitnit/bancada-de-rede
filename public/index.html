@@ -2,7 +2,7 @@
 <title>Bancada de Rede</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: bancada de operação — barra de lab no topo; gaveta de equipamentos | tapete de topologia com consoles flutuantes e gaveta de testes | inspetor */
 :root{
@@ -374,6 +374,141 @@ textarea.paste{width:100%;min-height:220px;font:12px/1.45 var(--f-mono);backgrou
   .row.rule{grid-template-columns:1fr 1fr;}
   #bInsp{display:none}
 }
+
+/* ================= visual "studio": painéis escuros arredondados, ferramentas flutuantes ================= */
+:root{
+  --f-display:"Poppins",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Poppins",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r-lg:22px; --r-md:14px; --r-sm:10px;
+  --bg:#E9EBF0; --panel:#FFFFFF; --raised:#F3F4F7; --canvas:#F6F7F9; --ink:#1B1C20; --muted:#7A7D86; --line:#E3E5EA; --line-2:#ECEEF2;
+  --accent:#2F6BFF; --accent-ink:#FFFFFF; --accent-soft:#E3ECFF; --good:#22B04B; --bad:#E5484D; --warn:#E59B1A; --hl:#F5A524;
+  --grid:#D3D6DD; --dev:#EEF0F4; --dev-stroke:#2A2C33; --tile:#FFFFFF; --tile-stroke:#E2E4EA; --link:#9EA2AC; --float:#FFFFFF;
+  --shadow:0 18px 40px rgba(24,28,40,.12),0 2px 8px rgba(24,28,40,.06);
+}
+:root[data-theme="dark"]{
+  --bg:#141416; --panel:#1E1E21; --raised:#28282C; --canvas:#19191B; --ink:#F2F2F4; --muted:#8E8E96; --line:#2E2E33; --line-2:#26262A;
+  --accent:#2F7BFF; --accent-ink:#FFFFFF; --accent-soft:rgba(47,123,255,.16); --good:#2FD15B; --bad:#FF5A5F; --warn:#F5A524; --hl:#F5B544;
+  --grid:#2E2E33; --dev:#2A2A2E; --dev-stroke:#C9CAD0; --tile:#262629; --tile-stroke:#323237; --link:#5A5A61; --float:#232326;
+  --term-bg:#121214; --term-head:#1C1C1F; --term-line:#2A2A2E;
+  --shadow:0 20px 50px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35); color-scheme:dark}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141416; --panel:#1E1E21; --raised:#28282C; --canvas:#19191B; --ink:#F2F2F4; --muted:#8E8E96; --line:#2E2E33; --line-2:#26262A;
+  --accent:#2F7BFF; --accent-ink:#FFFFFF; --accent-soft:rgba(47,123,255,.16); --good:#2FD15B; --bad:#FF5A5F; --warn:#F5A524; --hl:#F5B544;
+  --grid:#2E2E33; --dev:#2A2A2E; --dev-stroke:#C9CAD0; --tile:#262629; --tile-stroke:#323237; --link:#5A5A61; --float:#232326;
+  --term-bg:#121214; --term-head:#1C1C1F; --term-line:#2A2A2E;
+  --shadow:0 20px 50px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35); color-scheme:dark}}
+body{font-size:13.5px;padding-block:0 12px}
+/* barra superior */
+.top{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);margin:12px 0 12px;padding:10px 14px;gap:8px 14px}
+.brand b{font-weight:600;font-size:16px;letter-spacing:0}
+.brand svg rect:first-child{fill:var(--accent)}
+.labname input{font-weight:500;font-size:15px;border-radius:var(--r-sm);text-align:center}
+.labname{justify-content:center}
+.btn{border-radius:var(--r-sm);border:1px solid var(--line);background:var(--raised);padding:7px 13px;font-weight:500}
+.btn.sm{padding:3px 10px;border-radius:8px}
+.btn.icon{padding:7px 9px}
+.btn:hover{border-color:color-mix(in srgb,var(--ink) 25%,transparent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.ghost:hover{background:var(--raised);border-color:var(--line)}
+.btn[aria-pressed="true"]{background:color-mix(in srgb,var(--ink) 14%,var(--raised));color:var(--ink);border-color:transparent}
+select,input[type=text],input[type=number],input[type=search]{border-radius:var(--r-sm);padding:6px 10px;background:var(--raised);border:1px solid var(--line)}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.lbl,.palette h2,.insp h2{letter-spacing:.04em;font-weight:500;text-transform:none;font-size:12.5px}
+.sep{background:var(--line)}
+kbd{border-radius:5px}
+/* painéis */
+.app{gap:12px;grid-template-columns:250px minmax(0,1fr) 380px}
+.app.noinsp{grid-template-columns:250px minmax(0,1fr) 0}
+.pane{border-radius:var(--r-lg);border:1px solid var(--line);background:var(--panel)}
+.palette{padding:16px 14px}
+.palette h2{font-size:15px;font-weight:600;color:var(--ink)}
+.cat{border-top:none;padding-top:2px}
+.cat>summary{font-weight:500;font-size:12.5px;text-transform:none;letter-spacing:.01em;color:var(--muted);padding:6px 4px;border-radius:8px}
+.cat>summary:hover{color:var(--ink);background:var(--raised)}
+.mbtn{border-radius:var(--r-md);border:1px solid transparent;background:var(--raised);padding:7px 9px}
+.mbtn:hover{border-color:var(--accent);box-shadow:none}
+.mbtn b{font-weight:500;font-size:12.5px}
+.mbtn .vb{border-radius:6px;font-family:var(--f-body);font-weight:600;letter-spacing:.02em}
+.devbtn{border-radius:var(--r-md);border:1px solid transparent;background:var(--raised);font-weight:500}
+.devbtn:hover{border-color:var(--accent);box-shadow:none}
+/* palco e ferramentas flutuantes */
+.stage{gap:12px}
+.canvas{background:var(--canvas)}
+.ctools{top:14px;left:14px;right:auto;bottom:14px;flex-direction:column;align-items:flex-start;justify-content:flex-start;flex-wrap:nowrap;gap:10px;max-width:none}
+.seg{background:var(--float);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:5px;gap:4px}
+.seg button{border-radius:10px;padding:8px 14px;font-weight:500;color:var(--muted)}
+.seg button+button{border-left:none}
+.seg button:hover{color:var(--ink);background:var(--raised)}
+.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--ink) 12%,var(--float));color:var(--ink)}
+.ctools .seg:first-child button{font-size:14.5px;padding:9px 18px}
+.ctools .seg:not(:first-child){flex-direction:column;padding:6px}
+.ctools .seg:not(:first-child) button{width:44px;height:44px;padding:0;justify-content:center;font-size:0;gap:0}
+.ctools .seg:not(:first-child) svg{width:21px;height:21px;stroke-width:1.7}
+.ctools .seg .zv{font-size:11px!important;width:44px;height:30px!important;min-width:0}
+#tMg::before{content:"";width:20px;height:0;border-top:2px dashed currentColor}
+.guide{left:84px;top:76px;border-radius:var(--r-lg);background:var(--float)}
+.tdock{left:84px}
+.toolhint{border-radius:var(--r-sm);background:var(--float);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow)}
+.empty b{font-weight:600}
+/* nós */
+#cv .tile{fill:var(--tile);stroke:var(--tile-stroke);stroke-width:1}
+#cv .hov{fill:var(--accent-soft)}
+#cv .ico *{fill:none;stroke:var(--ink);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#cv .ico .fill{fill:var(--ink);stroke:none}
+#cv .node.is-sel .tile{fill:var(--accent);stroke:none;filter:url(#tglow)}
+#cv .node.is-sel .ico *{stroke:#fff}#cv .node.is-sel .ico .fill{fill:#fff}
+#cv .sel{display:none}
+#cv .from{fill:none;stroke:var(--hl);stroke-width:2.5}
+#cv .node text.nm{font:500 14px var(--f-body);fill:var(--ink);stroke:var(--canvas)}
+#cv .node text.md{font:400 10.5px var(--f-body);fill:var(--muted)}
+#cv .node text.ip{font:400 12px var(--f-body);fill:var(--muted)}
+#cv .led{stroke:var(--tile);stroke-width:2.5}
+#cv .gbadge{fill:var(--accent)}#cv .gbt{fill:#fff;font:600 8.5px var(--f-body)}
+#cv .edot{pointer-events:none;stroke:var(--canvas);stroke-width:2}
+#cv .lk.on .base{stroke:var(--accent)!important;stroke-width:3.5px;filter:drop-shadow(0 0 8px var(--accent))}
+#cv .plab{font:500 9.5px var(--f-mono)}
+#cv .frame{fill:color-mix(in srgb,var(--tile) 40%,transparent);stroke:var(--tile-stroke);stroke-width:1.4;stroke-dasharray:none;rx:18px}
+#cv .fhead{fill:var(--raised)}
+#cv .fhead-t{fill:var(--ink);font:500 12.5px var(--f-body)}
+#cv .fhead-s{fill:var(--muted)}
+/* gaveta inferior e inspetor */
+.drawer{border-radius:var(--r-lg)}
+.tabs{padding:8px 14px 0;border-bottom:1px solid var(--line);gap:14px}
+.tab{font-family:var(--f-body);font-weight:500;font-size:13.5px;padding:8px 2px;border-bottom-width:2px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.simform{padding:12px 16px}
+.simout{padding:0 16px 12px}
+.verdict{font-weight:600}
+.ihead{padding:18px 18px 0}
+.ihead .kind{font-weight:500;text-transform:none;letter-spacing:.01em;font-size:12.5px}
+.ihead .nm{font-weight:600;font-size:21px}
+.ibody{padding:14px 18px 18px;gap:16px}
+.itabs{gap:14px;margin-top:10px}
+.sec h4{font-weight:600}
+.stats div{border-radius:var(--r-md);border:none;background:var(--raised);padding:10px 12px}
+.stats b{font-weight:600}
+.prow,.mcard,.bay,.labrow,.starter,.rchip{border-radius:var(--r-md)}
+.prow{border:1px solid var(--line);background:var(--raised)}
+.chip{border-radius:6px}
+.cfg,.steps pre{border-radius:var(--r-md)}
+.pill{border-radius:6px;font-family:var(--f-body);font-weight:600}
+/* modais, consoles, toast */
+.scrim{background:rgba(8,8,10,.55);backdrop-filter:blur(3px)}
+.modal{border-radius:var(--r-lg);background:var(--panel)}
+.mhead h3{font-weight:600}
+.starter{background:var(--raised);border-color:transparent;padding:12px 14px}
+.starter b{font-weight:600}
+.labrow{background:var(--raised);border-color:transparent}
+.tw{border-radius:var(--r-md)}
+.tw-head b{font-weight:500}
+.tdock button{border-radius:8px}
+.toast{border-radius:var(--r-md);background:var(--float);color:var(--ink);border:1px solid var(--line)}
+.toast.bad{background:var(--bad);color:#fff;border-color:transparent}
+.rackview{background:var(--canvas);padding:76px 14px 14px 86px}
+.unracked{border-radius:var(--r-md)}
+.radd{border-radius:var(--r-md)}
 </style>
 
 <header class="top">
@@ -427,7 +562,7 @@ textarea.paste{width:100%;min-height:220px;font:12px/1.45 var(--f-mono);backgrou
   <section class="stage">
     <div class="pane canvas" id="canvas">
       <svg id="cv" role="img" aria-label="Topologia de rede">
-        <defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1.1" fill="var(--grid)"/></pattern></defs>
+        <defs><pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1.2" fill="var(--grid)"/></pattern><filter id="tglow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#2F7BFF" flood-opacity=".75"/></filter></defs>
         <rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#dots)"/>
         <g id="gFrames"></g><g id="gPath"></g><g id="gLinks"></g><g id="gGhost"></g><g id="gNodes"></g>
       </svg>

@@ -16,7 +16,7 @@ const ICON = {
 /* ---------- estado ---------- */
 let S = null;
 const UI = { sel: null, tool: 'select', linkFrom: null, vendor: 'cisco', tab: 'geral', drawer: 'sim', drawerOpen: true, insp: true, open: new Set(), hl: { f: [], r: [] },
-  simRes: null, guideMin: false, clickConsole: true, theme: 'system', view: { cx: 600, cy: 420, k: 1 },
+  simRes: null, guideMin: false, clickConsole: true, theme: 'dark', view: { cx: 600, cy: 420, k: 1 },
   view2: 'topo', showMg: true, pf: 'used', pq: '', catOpen: new Set(['dc']) };
 const CUR = { id: null, dirty: false, savedAt: null, saving: false };
 const undo = [], redo = []; let lastSnap = null;
@@ -118,6 +118,24 @@ function glyphOf(d) { const m = modelOf(d); const f = m && m.form;
   if (f === 'iom') { let s = '<rect x="-30" y="-11" width="60" height="22" rx="3" class="gb"/>'; for (let i = 0; i < 6; i++) s += `<rect x="${-25 + i * 8.5}" y="-3" width="6" height="6" rx="1" class="gp"/>`; return s + `<rect x="14" y="-21" width="22" height="11" rx="2" class="gbadge"/><text x="25" y="-12.6" text-anchor="middle" class="gbt">${m.id === 'k8s-fabric' ? 'K8S' : 'IOM'}</text>`; }
   if (d.type === 'cloud') return glyph('cloud') + `<rect x="-17" y="-29" width="34" height="11" rx="2" class="gbadge"/><text x="0" y="-20.6" text-anchor="middle" class="gbt">${E.cloudKind(d) === 'real' ? 'REAL' : 'FAKE'}</text>`;
   return glyph(d.type); }
+/* ícones dos nós (traço fino, dentro do bloco arredondado) */
+function iconOf(d) { const m = modelOf(d), f = m && m.form;
+  if (d.k8sRole) return '<circle cx="0" cy="0" r="10"/><circle cx="0" cy="0" r="3"/><path d="M0 -10v7M0 3v7M-9.5 -3.1l6.7 2.2M2.8 .9l6.7 2.2M-5.9 8.1l4.1-5.7M1.8 -2.4l4.1-5.7"/>';
+  if (f === 'blade') return '<rect x="-5" y="-11" width="10" height="22" rx="2"/><path d="M-2 -6h4M-2 -2h4"/><circle class="fill" cx="0" cy="6" r="1.4"/>';
+  if (f === 'iom') return '<rect x="-11" y="-6" width="22" height="12" rx="2.5"/><path d="M-6 0h0M-2 0h0M2 0h0M6 0h0" stroke-width="2.6"/>';
+  if (f === 'rack' && isHost(d.type)) return '<rect x="-11" y="-9" width="22" height="7" rx="2"/><rect x="-11" y="2" width="22" height="7" rx="2"/><path d="M-7 -5.5h0M-7 5.5h0" stroke-width="2.6"/><path d="M2 -5.5h5M2 5.5h5"/>';
+  switch (d.type) {
+    case 'pc': return '<rect x="-11" y="-10" width="22" height="15" rx="2.5"/><path d="M0 5v5M-5 10h10"/>';
+    case 'srv': return '<rect x="-10" y="-11" width="20" height="9" rx="2"/><rect x="-10" y="2" width="20" height="9" rx="2"/><path d="M-6 -6.5h0M-6 6.5h0" stroke-width="2.6"/><path d="M1 -6.5h5M1 6.5h5"/>';
+    case 'rtr': return '<rect x="-11" y="0" width="22" height="9" rx="2.5"/><path d="M-7 4.5h0M-3 4.5h0" stroke-width="2.6"/><path d="M4 0v-5M8 0v-8M-6 -6a8 8 0 0 1 8 -4" />';
+    case 'sw2': case 'sw3': return '<rect x="-12" y="-8" width="24" height="16" rx="3"/><path d="M-7 -2h12m-3 -3 3 3-3 3M7 3H-5m3 -3-3 3 3 3"/>';
+    case 'fw': return '<path d="M0 -12 10 -8v7c0 6-4.5 10-10 12-5.5-2-10-6-10-12v-7z"/><path d="M-6 -3h12M-6 3h12M-2 -8v5M3 -3v6M-2 3v5"/>';
+    case 'cloud': return '<path d="M-9 8h17a6.5 6.5 0 0 0 .5-13 9 9 0 0 0-17 2.5A5.3 5.3 0 0 0-9 8z"/>';
+  } return '<rect x="-10" y="-10" width="20" height="20" rx="4"/>'; }
+function badgeOf(d) {
+  if (d.type === 'sw3') return '<rect x="-34" y="-36" width="22" height="13" rx="6.5" class="gbadge"/><text x="-23" y="-26.8" text-anchor="middle" class="gbt">L3</text>';
+  if (d.type === 'cloud') { const r = E.cloudKind(d) === 'real'; return `<rect x="-38" y="-36" width="${r ? 30 : 30}" height="13" rx="6.5" class="gbadge"/><text x="-23" y="-26.8" text-anchor="middle" class="gbt">${r ? 'REAL' : 'FAKE'}</text>`; }
+  return ''; }
 const nodeIf = d => { const a = l3ifs(d); return a.find(f => !f.mgmt) || a[0]; };
 function frameOf(ch) { const ms = E.membersOf(ch); if (!ms.length) return { x0: ch.x, y0: ch.y, x1: ch.x + 220, y1: ch.y + 120 };
   const xs = ms.map(d => d.x), ys = ms.map(d => d.y); return { x0: Math.min(...xs) - 64, y0: Math.min(...ys) - 70, x1: Math.max(...xs) + 64, y1: Math.max(...ys) + 84 }; }
@@ -160,25 +178,26 @@ function renderCanvas() {
     if (kind === 'internal') base = `<line ${c} stroke="var(--dev-stroke)" stroke-width="1.1" opacity=".45" class="base"/>`;
     else if (kind === 'mgmt') base = `<line ${c} stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="5 4" opacity=".75" class="base"/>`;
     else { const st = linkStyle(l);
-      if (st === 'trunk') base = `<line ${c} stroke="var(--ink)" stroke-width="6" class="base"/><line ${c} stroke="var(--canvas)" stroke-width="2" stroke-dasharray="7 5"/>`;
-      else if (st === 'routed') base = `<line ${c} stroke="var(--muted)" stroke-width="2.5" class="base"/>`;
-      else base = `<line ${c} stroke="${vc(st.slice(1))}" stroke-width="3.5" class="base"/>`; }
+      if (st === 'trunk') base = `<line ${c} stroke="var(--ink)" stroke-width="4.5" class="base"/><line ${c} stroke="var(--canvas)" stroke-width="1.6" stroke-dasharray="7 5"/>`;
+      else if (st === 'routed') base = `<line ${c} stroke="var(--link)" stroke-width="2" class="base"/>`;
+      else base = `<line ${c} stroke="${vc(st.slice(1))}" stroke-width="2.6" class="base"/>`; }
     if (down) base += `<line ${c} stroke="var(--bad)" stroke-width="2" stroke-dasharray="2 6"/>`;
     const lab = (P, Q, d, k) => { const t = .27, x = P.x + (Q.x - P.x) * t, y = P.y + (Q.y - P.y) * t; return `<text class="plab" x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}">${esc(spn(d, k))}</text>`; };
     const la = +A.ports[l.a.k].lag, lb = +B.ports[l.b.k].lag;
     const lagT = kind || !(la || lb) ? '' : `<text class="lagtag" x="${((A.x + B.x) / 2).toFixed(1)}" y="${((A.y + B.y) / 2 - 5).toFixed(1)}">${esc([la ? E.lagShort(A, la) : '', lb ? E.lagShort(B, lb) : ''].filter(Boolean).join(' ⇄ '))}</text>`;
+    { const dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy); if (kind !== 'internal' && L > 96) { const ux = dx / L, uy = dy / L, r = 40;
+      base += `<circle class="edot" cx="${(A.x + ux * r).toFixed(1)}" cy="${(A.y + uy * r).toFixed(1)}" r="4.5" fill="${A.ports[l.a.k].shut ? 'var(--bad)' : 'var(--good)'}"/><circle class="edot" cx="${(B.x - ux * r).toFixed(1)}" cy="${(B.y - uy * r).toFixed(1)}" r="4.5" fill="${B.ports[l.b.k].shut ? 'var(--bad)' : 'var(--good)'}"/>`; } }
     h += `<g class="lk${on ? ' on' : ''}" data-link="${l.id}"><line ${c} class="hit"/>${base}${kind === 'internal' ? '' : (kind === 'mgmt' && !on ? '' : lab(A, B, A, l.a.k) + lab(B, A, B, l.b.k))}${lagT}</g>`; });
   $('#gLinks').innerHTML = h;
   let p = ''; const seg = (ids, cls) => ids.forEach(id => { const l = S.links.find(x => x.id === id); if (!l) return; const A = dev(l.a.dev), B = dev(l.b.dev); if (A && B) p += `<line class="path ${cls}" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>`; });
   seg(UI.hl.f, ''); seg(UI.hl.r, 'rev'); $('#gPath').innerHTML = p;
   let n = ''; S.devices.forEach(d => { if (d.type === 'chassis') return; const sel = UI.sel && UI.sel.kind === 'dev' && UI.sel.id === d.id, from = UI.linkFrom === d.id; const f = nodeIf(d), m = modelOf(d);
     const up = d.ports.some((pp, k) => !pp.shut && linkAt(d.id, k) && !isInternal(d, k)) || d.ports.some((pp, k) => !pp.shut && linkAt(d.id, k));
-    const form = m && m.form; const ty = form === 'blade' ? 40 : isHost(d.type) ? 40 : 36; const hh = 72 + ((m && !d.parent) || d.bgp || d.os || d.type === 'cloud' ? 12 : 0) + (f ? 13 : 0);
-    const led = form === 'rack' ? [34, -18] : form === 'blade' ? [13, -24] : isHost(d.type) ? [20, -20] : [31, -15];
-    n += `<g class="node" data-node="${d.id}" transform="translate(${d.x},${d.y})"><rect class="hov" x="-46" y="-32" width="92" height="${hh}" rx="8"/>`
-      + `${sel ? `<rect x="-46" y="-32" width="92" height="${hh}" rx="8" class="sel"/>` : ''}${from ? `<rect x="-46" y="-32" width="92" height="${hh}" rx="8" class="from"/>` : ''}`
-      + `${glyphOf(d)}<circle class="led" cx="${led[0]}" cy="${led[1]}" r="4" fill="${up ? 'var(--good)' : 'var(--v0)'}"/>`
-      + `<text class="nm" y="${ty}">${esc(d.name)}</text>${(m && !d.parent) || d.bgp || d.vxlan || d.os || d.type === 'cloud' || (d.vpns || []).length ? `<text class="md" y="${ty + 12}">${esc([m && !d.parent && d.type !== 'cloud' ? m.vendor + ' ' + m.name : '', d.type === 'cloud' ? osLabel(d) : '', d.os && !d.k8sRole ? osShort(d) : '', d.k8sRole ? d.k8sRole : '', d.bgp && d.bgp.asn ? 'AS ' + d.bgp.asn : '', d.vxlan ? 'VTEP' : '', (d.ports || []).some(p => p.mpls) ? 'MPLS' : '', (d.vpns || []).length ? 'VPN' : '', d.ctOn ? 'container' : ''].filter(Boolean).join(' · '))}</text>` : ''}${f ? `<text class="ip" y="${ty + ((m && !d.parent) || d.bgp || d.os || d.type === 'cloud' || (d.vpns || []).length ? 25 : 13)}">${esc(cidrStr(f.c))}</text>` : ''}</g>`; });
+    const mdTx = [m && !d.parent && d.type !== 'cloud' ? m.vendor + ' ' + m.name : '', d.type === 'cloud' ? osLabel(d) : '', d.os && !d.k8sRole ? osShort(d) : '', d.k8sRole ? d.k8sRole : '', d.bgp && d.bgp.asn ? 'AS ' + d.bgp.asn : '', d.vxlan ? 'VTEP' : '', (d.ports || []).some(p => p.mpls) ? 'MPLS' : '', (d.vpns || []).length ? 'VPN' : '', d.ctOn ? 'container' : ''].filter(Boolean).join(' · ');
+    n += `<g class="node${sel ? ' is-sel' : ''}" data-node="${d.id}" transform="translate(${d.x},${d.y})"><rect class="hov" x="-36" y="-38" width="72" height="72" rx="20"/>`
+      + `${from ? '<rect x="-33" y="-35" width="66" height="66" rx="19" class="from"/>' : ''}<rect class="tile" x="-28" y="-30" width="56" height="56" rx="16"/>`
+      + `<g class="ico" transform="translate(0,-2)">${iconOf(d)}</g>${badgeOf(d)}<circle class="led" cx="24" cy="-26" r="4.5" fill="${up ? 'var(--good)' : 'var(--muted)'}"/>`
+      + `<text class="nm" y="44">${esc(d.name)}</text>${mdTx ? `<text class="md" y="58">${esc(mdTx)}</text>` : ''}${f ? `<text class="ip" y="${mdTx ? 72 : 59}">${esc(cidrStr(f.c))}</text>` : ''}</g>`; });
   $('#gNodes').innerHTML = n;
   $('#empty').hidden = S.devices.length > 0 || UI.view2 === 'rack';
   const hint = $('#hint'); if (UI.tool === 'link' && UI.view2 !== 'rack') { hint.hidden = false; hint.textContent = UI.linkFrom ? `Clique no segundo equipamento para ligar a ${dev(UI.linkFrom)?.name}. Esc cancela.` : 'Modo conectar: clique no primeiro equipamento.'; } else hint.hidden = true;
@@ -974,7 +993,7 @@ function renderPalette() { const q = UI.pq.trim().toLowerCase();
 /* ---------- eventos ---------- */
 function applyTheme() { const r = document.documentElement; if (UI.theme === 'system') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', UI.theme); }
 function init() {
-  const pf = lsGet(PKEY, {}) || {}; Object.assign(UI, { vendor: pf.vendor || 'auto', theme: pf.theme || 'system', clickConsole: pf.clickConsole !== false, insp: pf.insp !== false, drawerOpen: pf.drawerOpen !== false, showMg: pf.showMg !== false, pf: pf.pf || 'used' });
+  const pf = lsGet(PKEY, {}) || {}; Object.assign(UI, { vendor: pf.vendor || 'auto', theme: pf.theme || 'dark', clickConsole: pf.clickConsole !== false, insp: pf.insp !== false, drawerOpen: pf.drawerOpen !== false, showMg: pf.showMg !== false, pf: pf.pf || 'used' });
   if (Array.isArray(pf.catOpen)) UI.catOpen = new Set(pf.catOpen);
   if (!E.VN[UI.vendor] && UI.vendor !== 'auto') UI.vendor = 'auto'; applyTheme();
   renderPalette(); $('#genN').textContent = Object.keys(TYPES).filter(t => t !== 'chassis').length;

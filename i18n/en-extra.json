@@ -95,7 +95,6 @@
 "(comandos de rede continuam simulados)": "(network commands are still simulated)",
 "AOS-CX 10.13 Web UI (simulado)": "AOS-CX 10.13 Web UI (simulated)",
 "· Bancada de Rede — interface de laboratório; as mudanças valem no lab.": "· Bancada de Rede — lab interface; changes apply to the lab.",
-"Rede": "Network",
 "% Rede": "% Network",
 "não está na tabela de roteamento": "is not in the routing table",
 "(ex.: rollout status deployment/<nome>)": "(e.g.: rollout status deployment/<name>)",
