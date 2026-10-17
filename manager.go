@@ -20,6 +20,15 @@ type LogLine struct {
 	N   int    `json:"n"`
 	T   string `json:"t"`
 	Msg string `json:"msg"`
+	En  string `json:"en"`
+}
+
+// Text: a linha no idioma atual.
+func (l LogLine) Text() string {
+	if Lang() == "en" && l.En != "" {
+		return l.En
+	}
+	return l.Msg
 }
 type LogBuf struct {
 	mu    sync.Mutex
@@ -33,7 +42,7 @@ func (b *LogBuf) Add(msg string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.n++
-	b.lines = append(b.lines, LogLine{b.n, time.Now().Format("15:04:05"), msg})
+	b.lines = append(b.lines, LogLine{b.n, time.Now().Format("15:04:05"), msg, toEN(msg)})
 	if len(b.lines) > 600 {
 		b.lines = b.lines[len(b.lines)-600:]
 	}
@@ -65,6 +74,7 @@ type Settings struct {
 	AutoStart bool   `json:"autoStart"`
 	OpenApp   bool   `json:"openApp"`
 	Auth      string `json:"auth"`
+	Lang      string `json:"lang"` // "pt" | "en"
 }
 
 func loadSettings(path string, def Settings) Settings {
@@ -77,6 +87,9 @@ func loadSettings(path string, def Settings) Settings {
 	}
 	if strings.TrimSpace(s.DataDir) == "" {
 		s.DataDir = def.DataDir
+	}
+	if s.Lang != "pt" && s.Lang != "en" {
+		s.Lang = defaultLang()
 	}
 	return s
 }
@@ -134,6 +147,9 @@ func (m *Manager) URL() string {
 	defer m.mu.Unlock()
 	return fmt.Sprintf("http://localhost:%d/", m.set.Port)
 }
+
+// AppURL: endereço para abrir no navegador, já com o idioma escolhido no painel.
+func (m *Manager) AppURL() string { return m.URL() + "?lang=" + Lang() }
 
 func friendlyListenErr(err error, port int) string {
 	s := err.Error()
@@ -208,6 +224,16 @@ func (m *Manager) Stop() {
 	defer cancel()
 	_ = srv.Shutdown(ctx)
 	logf("Servidor parado")
+	m.notify()
+}
+
+// SetLang grava o idioma escolhido no painel (vale também para o navegador aberto a partir dele).
+func (m *Manager) SetLang(l string) {
+	m.mu.Lock()
+	m.set.Lang = l
+	s, path := m.set, m.cfgPath
+	m.mu.Unlock()
+	_ = saveSettings(path, s)
 	m.notify()
 }
 

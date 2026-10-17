@@ -104,6 +104,7 @@ func runHeadless(port int, host, data string) {
 		data = envOr("DATA_DIR", filepath.Join(baseDir()))
 	}
 	abs, _ := filepath.Abs(data)
+	setLang(envOr("BANCADA_LANG", defaultLang()))
 	m := &Manager{set: Settings{Port: port, DataDir: abs, Auth: os.Getenv("BASIC_AUTH")}, bindHost: host}
 	if err := m.Start(); err != nil {
 		os.Exit(1)
@@ -125,6 +126,7 @@ func runDesktop(port int, data string, noBrowser bool) {
 	if data != "" {
 		set.DataDir, _ = filepath.Abs(data)
 	}
+	setLang(set.Lang)
 	m := &Manager{set: set, cfgPath: cfgPath}
 	_ = saveSettings(cfgPath, set)
 	logf("Bancada de Rede %s pronta. Dados em %s", version, set.DataDir)

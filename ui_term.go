@@ -13,9 +13,9 @@ import (
 
 // runUI no Linux/macOS: controle pelo terminal (iniciar, parar, reiniciar, abrir, pasta, status, sair).
 func runUI(m *Manager, noBrowser bool) {
-	fmt.Printf("\n  Bancada de Rede %s\n  Comandos: iniciar | parar | reiniciar | abrir | pasta | status | sair\n\n", version)
+	fmt.Printf("\n  Bancada de Rede %s\n  %s\n\n", version, cmdsHelp())
 	if err := m.Start(); err == nil && !noBrowser {
-		openURL(m.URL())
+		openURL(m.AppURL())
 	}
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -41,25 +41,40 @@ func runUI(m *Manager, noBrowser bool) {
 				_ = m.Restart()
 			case "abrir", "open":
 				if m.Running() {
-					openURL(m.URL())
+					openURL(m.AppURL())
 				} else {
-					fmt.Println("  O servidor está parado. Use: iniciar")
+					fmt.Println("  " + T("O servidor está parado. Use: iniciar"))
 				}
-			case "pasta":
+			case "pasta", "folder":
 				openFolder(m.Settings().DataDir)
+			case "en", "english", "pt", "portugues", "português":
+				if strings.HasPrefix(l, "en") {
+					m.SetLang("en")
+				} else {
+					m.SetLang("pt")
+				}
+				setLang(m.Settings().Lang)
+				fmt.Println("  " + cmdsHelp())
 			case "status", "":
 				st := m.Status()
 				if st["running"] == true {
-					fmt.Printf("  Rodando em %v — dados em %v — %v labs\n", st["url"], st["dataDir"], st["labs"])
+					fmt.Printf("  "+T("Rodando em %v — dados em %v — %v labs")+"\n", st["url"], st["dataDir"], st["labs"])
 				} else {
-					fmt.Printf("  Parado. %v\n", st["error"])
+					fmt.Printf("  %s %v\n", T("Parado."), T(fmt.Sprint(st["error"])))
 				}
 			case "sair", "exit", "quit":
 				m.Stop()
 				return
 			default:
-				fmt.Println("  Comandos: iniciar | parar | reiniciar | abrir | pasta | status | sair")
+				fmt.Println("  " + cmdsHelp())
 			}
 		}
 	}
+}
+
+func cmdsHelp() string {
+	if Lang() == "en" {
+		return "Commands: start | stop | restart | open | folder | status | pt (português) | exit"
+	}
+	return "Comandos: iniciar | parar | reiniciar | abrir | pasta | status | en (English) | sair"
 }

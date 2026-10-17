@@ -400,6 +400,7 @@ textarea.paste{width:100%;min-height:220px;font:12px/1.45 var(--f-mono);backgrou
     <button class="btn" id="bZip" title="Configs de todos os equipamentos + topologia"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v4h16v-4"/></svg>Exportar .zip</button>
     <span class="sep"></span>
     <button class="btn icon ghost" id="bInsp" title="Mostrar/ocultar painel" aria-label="Mostrar ou ocultar painel"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+    <button class="btn ghost" id="bLang" data-notr title="Language / Idioma" aria-label="Language / Idioma" style="min-width:44px;font-weight:600">EN</button>
     <button class="btn icon ghost" id="bTheme" title="Tema" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
   </div>
 </header>
@@ -487,6 +488,7 @@ textarea.paste{width:100%;min-height:220px;font:12px/1.45 var(--f-mono);backgrou
 <input type="file" id="fileIn" accept=".json,application/json" hidden>
 <input type="file" id="cfgFile" accept=".txt,.cfg,.conf,.rsc,.log,text/plain" hidden>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="i18n.js"></script>
 <script src="catalog.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>

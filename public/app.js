@@ -374,7 +374,8 @@ function bridgeSync() { if (Store.mode !== 'server') return; clearTimeout(brT); 
   try { const r = await API('api/bridge/config', { method: 'POST', body: JSON.stringify({ ports, lan }) }); UI.brErr = r.errors || {}; UI.lan = UI.lan || {}; const fresh = []; Object.values(r.lan || {}).forEach(x => { const o = UI.lan[x.key]; if (!o || (x.seq || 0) > (o.seq || 0)) fresh.push(x); }); Object.keys(UI.lan).forEach(k2 => { if (!lan.some(x => x.key === k2)) delete UI.lan[k2]; }); fresh.forEach(x => lanEvent(x, true)); UI.brBind = r.bind; UI.local = r.local || null;
     const pe = Object.keys(UI.brErr).filter(x => !/^\d+\.\d+\.\d+\.\d+:/.test(x) || !lan.some(l => x.startsWith(l.ip + ':'))); if (pe.length) toast('Não consegui abrir ' + pe.join(', ') + ' neste computador (porta em uso?).', 'bad');
     if (UI.sel && UI.sel.kind === 'dev' && dev(UI.sel.id)?.type === 'cloud') renderInspector(); } catch (_) { brKey = ''; } }, 400); }
-const brOut = (sess, o) => API('api/bridge/out', { method: 'POST', body: JSON.stringify({ sess, lines: o.lines || [], prompt: o.prompt || '', close: !!o.close, status: o.status || 0, headers: o.headers || {}, body: o.body || '' }) }).catch(() => {});
+const T = s => (window.I18N ? I18N.tr(s) : s);
+const brOut = (sess, o) => API('api/bridge/out', { method: 'POST', body: JSON.stringify({ sess, lines: (o.lines || []).map(T), prompt: o.prompt || '', close: !!o.close, status: o.status || 0, headers: o.headers || {}, body: /html|text/.test(String((o.headers || {})['Content-Type'] || 'text/html')) ? T(o.body || '') : (o.body || '') }) }).catch(() => {});
 function brCloudFor(e) { const ip = String(e.target || '').split(':')[0]; const cs2 = S.devices.filter(d => d.type === 'cloud' && E.cloudKind(d) === 'real'); return cs2.find(c => (c.cloud.pubs || []).some(p => +p.port === +e.port && !e.bind)) || cs2.find(c => c.cloud.lan && pc(c.cloud.lan) && E.inNet(ip2i(ip) ?? 0, pc(c.cloud.lan))) || cs2[0]; }
 function brSrc(c, client) { const lan = c.cloud.lan && pc(c.cloud.lan); const ci = ip2i(client || ''); if (lan && ci !== null && E.inNet(ci, lan) && client !== c.cloud.hostIp) return client; return c.cloud.mode === 'host' && c.cloud.hostIp ? c.cloud.hostIp : '203.0.113.50'; }
 const parseCookies = s => Object.fromEntries(String(s || '').split(/;\s*/).filter(Boolean).map(x => { const i = x.indexOf('='); return [x.slice(0, i), decodeURIComponent(x.slice(i + 1))]; }));
@@ -564,7 +565,7 @@ function webShow(res) { const d = dev(WEBV.dev); const t = webTargetOf(d); const
     doc.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (!a) return; const h = a.getAttribute('href'); if (h && h.charAt(0) === '/') { e.preventDefault(); if (h === '/__term') { openTerm(WEBV.dev); return; } webNav('GET', h); } }, true);
     doc.addEventListener('submit', e => { e.preventDefault(); const fm = e.target, o2 = {}; new FormData(fm).forEach((v, k) => { o2[k] = v; }); if (e.submitter && e.submitter.name) o2[e.submitter.name] = e.submitter.value; webNav((fm.getAttribute('method') || 'GET').toUpperCase(), fm.getAttribute('action') || '/', o2); }, true);
     const inp = doc.querySelector('[autofocus]'); if (inp) inp.focus(); };
-  f.srcdoc = /html/.test((res.headers || {})['Content-Type'] || 'text/html') ? String(res.body) : `<pre>${esc(res.body)}</pre>`; }
+  f.srcdoc = /html/.test((res.headers || {})['Content-Type'] || 'text/html') ? T(String(res.body)) : `<pre>${esc(T(String(res.body)))}</pre>`; }
 window.addEventListener('message', e => { const m = e.data || {}; if (m.webnav && WEBV) { const n = m.webnav; webNav(n.method, n.path, n.form); } if (m.bancadaOpenTerm && dev(m.bancadaOpenTerm)) openTerm(m.bancadaOpenTerm); });
 
 /* ---------- inspetor ---------- */
@@ -837,9 +838,9 @@ async function exportZip() {
   if (!S.devices.length) return toast('Adicione equipamentos antes de exportar.');
   const fn = `lab-${slug(S.name)}-${UI.vendor === 'auto' ? 'nativo' : UI.vendor}.zip`; let ok = false;
   try {
-    if (Store.mode === 'server') { const r = await fetch('api/export?vendor=' + encodeURIComponent(UI.vendor), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topology: S, files: E.exportFiles(UI.vendor) }) });
+    if (Store.mode === 'server') { const r = await fetch('api/export?vendor=' + encodeURIComponent(UI.vendor), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topology: S, files: E.exportFiles(UI.vendor).map(f => ({ ...f, text: T(f.text) })) }) });
       if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error || m; } catch (_) {} throw new Error(m); } ok = await download(fn, await r.blob()); }
-    else if (window.JSZip) { const z = new window.JSZip(); E.exportFiles(UI.vendor).forEach(f => z.file(f.name, f.text)); ok = await download(fn, await z.generateAsync({ type: 'blob' })); }
+    else if (window.JSZip) { const z = new window.JSZip(); E.exportFiles(UI.vendor).forEach(f => z.file(f.name, T(f.text))); ok = await download(fn, await z.generateAsync({ type: 'blob' })); }
     else return toast('Sem servidor e sem a biblioteca de compactação: baixe pela aba Config de cada equipamento.', 'bad');
   } catch (e) { return toast('Falha ao exportar: ' + e.message, 'bad'); }
   if (ok) { S.exported = true; saveDraft(); renderGuide(); }
@@ -1027,6 +1028,7 @@ function init() {
   $('#bUndo').onclick = doUndo; $('#bRedo').onclick = doRedo; $('#bLabs').onclick = labsModal; $('#bSave').onclick = () => saveLab();
   $('#bZip').onclick = exportZip;
   $('#bInsp').onclick = () => { UI.insp = !UI.insp; savePrefs(); renderTop(); setTimeout(applyView, 0); };
+  $('#bLang').textContent = window.I18N && I18N.lang === 'en' ? 'PT' : 'EN'; $('#bLang').onclick = () => window.I18N && I18N.set(I18N.lang === 'en' ? 'pt' : 'en');
   $('#bTheme').onclick = () => { UI.theme = UI.theme === 'system' ? 'dark' : UI.theme === 'dark' ? 'light' : 'system'; applyTheme(); savePrefs(); toast('Tema: ' + ({ system: 'do sistema', dark: 'escuro', light: 'claro' })[UI.theme]); };
   $('#vendorTop').onchange = e => { UI.vendor = e.target.value; savePrefs(); renderInspector(); syncTerms(); };
   $('#labName').addEventListener('change', e => { const v = e.target.value.trim(); if (v && v !== S.name) { S.name = v; commit(); } else e.target.value = S.name; });

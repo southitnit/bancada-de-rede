@@ -132,6 +132,7 @@ const (
 	idAuth
 	idAuto
 	idOpenApp
+	idLang
 )
 
 type wndClassEx struct {
@@ -176,6 +177,7 @@ type gui struct {
 	running                               bool
 	errored                               bool
 	prevRun, prevErr                      bool
+	labels                                map[uintptr]string // texto original (português) de cada controle
 }
 
 var G *gui
@@ -191,6 +193,10 @@ func (g *gui) add(class, text string, style, ex uint32, x, y, w, h, id int, font
 	hw := call(pCreateWindowEx, uintptr(ex), u16p(class), u16p(text), uintptr(style|wsChild|wsVisible),
 		uintptr(g.s(x)), uintptr(g.s(y)), uintptr(g.s(w)), uintptr(g.s(h)), g.hwnd, uintptr(id), g.inst, 0)
 	call(pSendMessage, hw, wmSetFont, font, 1)
+	if class != "EDIT" && text != "" {
+		g.labels[hw] = text
+		call(pSetWindowText, hw, u16p(T(text)))
+	}
 	if id != 0 {
 		g.ctl[id] = hw
 	}
@@ -221,7 +227,48 @@ func setCheck(hw uintptr, v bool) {
 	call(pSendMessage, hw, bmSetCheck, c, 0)
 }
 func (g *gui) msgBox(text string, flags uintptr) uintptr {
-	return call(pMessageBox, g.hwnd, u16p(text), u16p("Bancada de Rede"), flags)
+	return call(pMessageBox, g.hwnd, u16p(T(text)), u16p("Bancada de Rede"), flags)
+}
+
+// langLabel: o botão mostra o outro idioma (o que será usado ao clicar).
+func langLabel() string {
+	if Lang() == "en" {
+		return "Português"
+	}
+	return "English"
+}
+
+// relabel troca todos os textos da janela para o idioma atual.
+func (g *gui) relabel() {
+	for hw, pt := range g.labels {
+		setText(hw, T(pt))
+	}
+	setText(g.ctl[idLang], langLabel())
+	setText(g.hwnd, T("Bancada de Rede — Painel de controle"))
+	call(pSendMessage, g.ctl[idAuth], emSetCue, 1, u16p(T("usuario:senha")))
+	all := LOGS.Since(0)
+	var nb strings.Builder
+	for _, l := range all[max(0, len(all)-200):] {
+		nb.WriteString(l.T + "  " + l.Text() + "\r\n")
+	}
+	delete(lastText, g.logBox)
+	setText(g.logBox, nb.String())
+	g.logLen = nb.Len()
+	n := uintptr(0x7fffffff)
+	call(pSendMessage, g.logBox, emSetSel, n, n)
+	g.refresh()
+}
+
+func (g *gui) toggleLang() {
+	s := g.m.Settings()
+	if Lang() == "en" {
+		s.Lang = "pt"
+	} else {
+		s.Lang = "en"
+	}
+	setLang(s.Lang)
+	g.m.SetLang(s.Lang)
+	g.relabel()
 }
 
 // iconFromICO cria um HICON a partir do .ico embutido, no tamanho pedido.
@@ -256,7 +303,9 @@ func (g *gui) build() {
 	S := g.m.Settings()
 
 	g.add("STATIC", "Bancada de Rede", ssNoPrefix, 0, 18, 12, 400, 32, 0, g.fTitle)
-	g.ver = g.add("STATIC", "versão "+version, ssNoPrefix|ssRight, 0, 450, 22, 214, 20, 0, g.fUI)
+	g.ver = g.add("STATIC", "versão "+version, ssNoPrefix|ssRight, 0, 380, 20, 194, 20, 0, g.fUI)
+	g.add("BUTTON", "", bsPush|wsTabStop, 0, 582, 14, 86, 28, idLang, g.fUI)
+	setText(g.ctl[idLang], langLabel())
 	g.add("STATIC", "Inicie o servidor e abra a Bancada no navegador. Tudo roda a partir deste programa.", ssNoPrefix, 0, 18, 46, 646, 20, 0, g.fUI)
 
 	g.add("BUTTON", "Servidor", bsGroupBox, 0, 12, 72, 656, 150, 0, g.fBold)
@@ -278,7 +327,7 @@ func (g *gui) build() {
 	g.add("EDIT", S.DataDir, esAutoHScroll|wsTabStop, wsExClient, 134, 289, 520, 24, idData, g.fUI)
 	g.add("STATIC", "Senha (opcional)", ssNoPrefix, 0, 28, 327, 104, 20, 0, g.fUI)
 	g.add("EDIT", S.Auth, esAutoHScroll|wsTabStop, wsExClient, 134, 323, 200, 24, idAuth, g.fUI)
-	call(pSendMessage, g.ctl[idAuth], emSetCue, 1, u16p("usuario:senha"))
+	call(pSendMessage, g.ctl[idAuth], emSetCue, 1, u16p(T("usuario:senha")))
 	g.add("BUTTON", "Iniciar o servidor ao abrir o programa", bsCheckBox|wsTabStop, 0, 350, 324, 304, 22, idAuto, g.fUI)
 	g.add("BUTTON", "Salvar configurações", bsPush|wsTabStop, 0, 28, 354, 160, 28, idSave, g.fUI)
 	g.add("BUTTON", "Abrir a Bancada ao iniciar o servidor", bsCheckBox|wsTabStop, 0, 350, 356, 304, 22, idOpenApp, g.fUI)
@@ -299,20 +348,20 @@ func (g *gui) refresh() {
 	g.running, g.errored = running, errMsg != "" && !running
 	switch {
 	case running:
-		setText(g.status, "●  Rodando")
-		addr := "Endereço: " + st["url"].(string)
+		setText(g.status, T("●  Rodando"))
+		addr := T("Endereço:") + " " + st["url"].(string)
 		if lan, ok := st["lanUrls"].([]string); ok && len(lan) > 0 {
-			addr += "     Na rede: " + strings.Join(lan, "   ")
+			addr += "     " + T("Na rede:") + " " + strings.Join(lan, "   ")
 		}
 		setText(g.addr, addr)
 	case errMsg != "":
-		setText(g.status, "●  Parado com erro")
-		setText(g.addr, errMsg)
+		setText(g.status, T("●  Parado com erro"))
+		setText(g.addr, T(errMsg))
 	default:
-		setText(g.status, "●  Parado")
-		setText(g.addr, "Clique em “Iniciar servidor” para subir a Bancada.")
+		setText(g.status, T("●  Parado"))
+		setText(g.addr, T("Clique em “Iniciar servidor” para subir a Bancada."))
 	}
-	setText(g.info, fmt.Sprintf("Labs salvos: %v     Dados em: %v", st["labs"], st["dataDir"]))
+	setText(g.info, fmt.Sprintf(T("Labs salvos: %v     Dados em: %v"), st["labs"], st["dataDir"]))
 	if g.prevRun != running || g.prevErr != g.errored {
 		g.prevRun, g.prevErr = running, g.errored
 		call(pInvalidateRect, g.status, 0, 1)
@@ -339,14 +388,14 @@ func (g *gui) pullLogs() {
 	var b strings.Builder
 	for _, l := range lines {
 		g.lastLog = l.N
-		b.WriteString(l.T + "  " + l.Msg + "\r\n")
+		b.WriteString(l.T + "  " + l.Text() + "\r\n")
 	}
 	add := b.String()
 	if g.logLen+len(add) > 60000 { // mantém o log leve
 		all := LOGS.Since(0)
 		var nb strings.Builder
 		for _, l := range all[max(0, len(all)-200):] {
-			nb.WriteString(l.T + "  " + l.Msg + "\r\n")
+			nb.WriteString(l.T + "  " + l.Text() + "\r\n")
 		}
 		delete(lastText, g.logBox)
 		setText(g.logBox, nb.String())
@@ -361,11 +410,11 @@ func (g *gui) pullLogs() {
 
 func (g *gui) start() {
 	if err := g.m.Start(); err != nil {
-		g.msgBox("Não foi possível iniciar o servidor.\n\n"+err.Error(), mbOK|mbIconError)
+		g.msgBox(T("Não foi possível iniciar o servidor.")+"\n\n"+T(err.Error()), mbOK|mbIconError)
 		return
 	}
 	if g.m.Settings().OpenApp {
-		openURL(g.m.URL())
+		openURL(g.m.AppURL())
 	}
 }
 
@@ -386,10 +435,10 @@ func (g *gui) save() {
 		g.msgBox("A senha deve estar no formato usuario:senha (ou deixe em branco).", mbOK|mbIconWarn)
 		return
 	}
-	s := Settings{Port: port, LAN: checked(g.ctl[idLan]), DataDir: data, Auth: auth, AutoStart: checked(g.ctl[idAuto]), OpenApp: checked(g.ctl[idOpenApp])}
+	s := Settings{Port: port, LAN: checked(g.ctl[idLan]), DataDir: data, Auth: auth, AutoStart: checked(g.ctl[idAuto]), OpenApp: checked(g.ctl[idOpenApp]), Lang: Lang()}
 	wasRunning := g.m.Running()
 	if err := g.m.Apply(s); err != nil {
-		g.msgBox("As configurações foram salvas, mas o servidor não subiu de novo.\n\n"+err.Error(), mbOK|mbIconError)
+		g.msgBox(T("As configurações foram salvas, mas o servidor não subiu de novo.")+"\n\n"+T(err.Error()), mbOK|mbIconError)
 		return
 	}
 	if wasRunning && (cur.Port != s.Port || cur.LAN != s.LAN || cur.DataDir != s.DataDir || cur.Auth != s.Auth) {
@@ -423,16 +472,18 @@ func wndProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 				g.m.Stop()
 			case idRestart:
 				if err := g.m.Restart(); err != nil {
-					g.msgBox("Não foi possível reiniciar.\n\n"+err.Error(), mbOK|mbIconError)
+					g.msgBox(T("Não foi possível reiniciar.")+"\n\n"+T(err.Error()), mbOK|mbIconError)
 				}
 			case idOpen:
-				openURL(g.m.URL())
+				openURL(g.m.AppURL())
 			case idFolder:
 				openFolder(g.m.Settings().DataDir)
 			case idSave:
 				g.save()
 			case idQuit:
 				g.confirmQuit()
+			case idLang:
+				g.toggleLang()
 			}
 			return 0
 		}
@@ -491,7 +542,7 @@ func runUI(m *Manager, noBrowser bool) {
 	icc := [2]uint32{8, 0x4000 | 0xFF}
 	call(pInitCommonControls, uintptr(unsafe.Pointer(&icc)))
 
-	g := &gui{m: m, ctl: map[int]uintptr{}}
+	g := &gui{m: m, ctl: map[int]uintptr{}, labels: map[uintptr]string{}}
 	g.inst = call(pGetModuleHandle, 0)
 	hdc := call(pGetDC, 0)
 	g.dpi = int(call(pGetDeviceCaps, hdc, 88)) // LOGPIXELSX
@@ -512,7 +563,7 @@ func runUI(m *Manager, noBrowser bool) {
 	w, h := r.right-r.left, r.bottom-r.top
 	sw, sh := int32(call(pGetSystemMetrics, 0)), int32(call(pGetSystemMetrics, 1))
 	G = g
-	g.hwnd = call(pCreateWindowEx, 0, u16p(className), u16p("Bancada de Rede — Painel de controle"), uintptr(style),
+	g.hwnd = call(pCreateWindowEx, 0, u16p(className), u16p(T("Bancada de Rede — Painel de controle")), uintptr(style),
 		uintptr((sw-w)/2), uintptr((sh-h)/2), uintptr(w), uintptr(h), 0, 0, g.inst, 0)
 	if g.hwnd == 0 {
 		return

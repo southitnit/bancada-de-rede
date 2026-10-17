@@ -61,7 +61,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	secHeaders(w)
 	p := r.URL.Path
 	if p == "/api/health" && r.Method == http.MethodGet {
-		writeJSON(w, 200, map[string]any{"ok": true, "version": version, "storage": a.st.dir, "labs": a.st.Count()})
+		writeJSON(w, 200, map[string]any{"ok": true, "version": version, "storage": a.st.dir, "labs": a.st.Count(), "lang": Lang()})
 		return
 	}
 	if !a.authOK(r) {
